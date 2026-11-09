@@ -5,6 +5,7 @@ Install dependencies with: pip install -r requirements.txt
 from __future__ import annotations
 
 import argparse
+import json
 import math
 from typing import Any
 
@@ -53,6 +54,17 @@ def format_property(value: Any, unit: str = "") -> str:
     return f"{value}{unit}"
 
 
+def element_data(element: Any) -> dict[str, Any]:
+    """Return machine-readable element information."""
+    return {
+        "atomic_number": element.number,
+        "name": element.name.title(),
+        "symbol": element.symbol,
+        "atomic_mass_u": element.mass,
+        "density_g_cm3": element.density,
+    }
+
+
 def element_report(element: Any) -> str:
     return "\n".join([
         "", "=" * 42, f"  {element.name.title()} ({element.symbol})",
@@ -70,14 +82,18 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "query", nargs="?", help="Atomic number, element name, or symbol"
     )
+    parser.add_argument("--json", action="store_true", help="Print a JSON result (requires query)")
     args = parser.parse_args(argv)
+    if args.json and not args.query:
+        parser.error("--json requires an element query.")
     try:
         require_periodictable()
     except RuntimeError as exc:
         parser.exit(1, f"Error: {exc}\n")
     if args.query:
         try:
-            print(element_report(find_element(args.query)))
+            element = find_element(args.query)
+            print(json.dumps(element_data(element), ensure_ascii=False) if args.json else element_report(element))
             return 0
         except ValueError as exc:
             parser.exit(2, f"Error: {exc}\n")
