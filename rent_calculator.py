@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 from decimal import Decimal, InvalidOperation
 
 CENT = Decimal("0.01")
@@ -35,6 +36,19 @@ def split_expenses(
         Decimal(base + (1 if index < remainder else 0)) / 100
         for index in range(people)
     ]
+
+
+def expense_data(rent: Decimal, food: Decimal, electricity: Decimal, people: int) -> dict:
+    """Return a JSON-friendly breakdown using strings for exact currency values."""
+    shares = split_expenses(rent, food, electricity, people)
+    return {
+        "rent": f"{rent:.2f}",
+        "food": f"{food:.2f}",
+        "electricity": f"{electricity:.2f}",
+        "total": f"{rent + food + electricity:.2f}",
+        "people": people,
+        "shares": [f"{share:.2f}" for share in shares],
+    }
 
 
 def expense_report(
@@ -89,18 +103,22 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--food", help="Total food costs")
     parser.add_argument("--electricity", help="Total electricity bill")
     parser.add_argument("--people", type=int, help="Number of people sharing costs")
+    parser.add_argument("--json", action="store_true", help="Output JSON (requires all four options)")
     args = parser.parse_args(argv)
     values = (args.rent, args.food, args.electricity, args.people)
     if any(value is not None for value in values) and not all(
         value is not None for value in values
     ):
         parser.error("Provide all four options together, or use interactive mode.")
+    if args.json and not all(value is not None for value in values):
+        parser.error("--json requires all four expense options.")
     if all(value is not None for value in values):
         try:
             rent = parse_amount(args.rent)
             food = parse_amount(args.food)
             electricity = parse_amount(args.electricity)
-            print(expense_report(rent, food, electricity, args.people))
+            result = expense_data(rent, food, electricity, args.people) if args.json else expense_report(rent, food, electricity, args.people)
+            print(json.dumps(result, indent=2) if args.json else result)
         except ValueError as exc:
             parser.error(str(exc))
         return 0
