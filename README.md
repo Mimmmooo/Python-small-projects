@@ -20,8 +20,6 @@ cd Python-small-projects
 python -m pip install -r requirements.txt
 ```
 
-> If you're reviewing the pull request before merging, switch to the `enhancement/interactive-projects` branch.
-
 ### Periodic table
 
 ```bash
@@ -29,6 +27,7 @@ python periodic_table.py
 python periodic_table.py 8
 python periodic_table.py Fe
 python periodic_table.py oxygen
+python periodic_table.py Fe --json
 ```
 
 Interactive mode accepts multiple searches until you type `q`, `quit`, or `exit`.
@@ -38,6 +37,7 @@ Interactive mode accepts multiple searches until you type `q`, `quit`, or `exit`
 ```bash
 python rent_calculator.py
 python rent_calculator.py --rent 6500 --food 2250.50 --electricity 499.50 --people 3
+python rent_calculator.py --rent 6500 --food 2250.50 --electricity 499.50 --people 3 --json
 ```
 
 The currency is intentionally unspecified, so you can enter amounts in BDT or another currency as long as all amounts use the same currency. Use a dot for decimal values and no thousands separators.
@@ -53,6 +53,8 @@ Person 1 pays    : 3,083.34
 Person 2 pays    : 3,083.33
 Person 3 pays    : 3,083.33
 ```
+
+Both programs support `--json` for scripts and automation. The calculator represents money as strings in JSON to preserve exact cents; the periodic table reports missing scientific properties as `null`.
 
 ## Run tests
 
