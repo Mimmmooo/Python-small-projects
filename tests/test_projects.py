@@ -3,8 +3,8 @@
 from decimal import Decimal
 import unittest
 
-from rent_calculator import expense_report, parse_amount, split_expenses
-from periodic_table import find_element, format_property, periodictable
+from rent_calculator import expense_data, expense_report, parse_amount, split_expenses
+from periodic_table import element_data, find_element, format_property, periodictable
 
 
 class RentCalculatorTests(unittest.TestCase):
@@ -35,6 +35,11 @@ class RentCalculatorTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             split_expenses(Decimal("1"), Decimal("2"), Decimal("3"), 0)
 
+    def test_json_breakdown_keeps_exact_cents(self):
+        result = expense_data(Decimal("10"), Decimal("0"), Decimal("0"), 3)
+        self.assertEqual(result["total"], "10.00")
+        self.assertEqual(result["shares"], ["3.34", "3.33", "3.33"])
+
     def test_report(self):
         report = expense_report(
             Decimal("100"), Decimal("20"), Decimal("0"), 2
@@ -54,6 +59,11 @@ class PeriodicTableTests(unittest.TestCase):
             with self.subTest(value=value):
                 with self.assertRaises(ValueError):
                     find_element(value)
+
+    def test_element_data(self):
+        result = element_data(find_element("Fe"))
+        self.assertEqual(result["atomic_number"], 26)
+        self.assertEqual(result["symbol"], "Fe")
 
     def test_missing_property(self):
         self.assertEqual(format_property(None), "Not available")
