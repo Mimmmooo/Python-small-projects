@@ -88,9 +88,15 @@ class ProjectApp(tk.Tk):
         self.element_tree.pack(side="left", fill="both", expand=True)
         scroll.pack(side="right", fill="y")
         self.element_tree.bind("<<TreeviewSelect>>", self.select_element)
+        self.element_query.trace_add("write", self.on_query_change)
         self.element_details = tk.StringVar(value="Select an element to view details.")
         ttk.Label(tab, textvariable=self.element_details, wraplength=800, justify="left").pack(anchor="w", pady=(2, 8))
         self.show_all_elements()
+
+    def on_query_change(self, *_args) -> None:
+        if hasattr(self, "_search_timer"):
+            self.after_cancel(self._search_timer)
+        self._search_timer = self.after(180, self.search_elements)
 
     def show_all_elements(self) -> None:
         self.element_query.set("")
@@ -163,6 +169,9 @@ class ProjectApp(tk.Tk):
         ttk.Button(buttons, text="Copy summary", command=self.copy_summary).pack(side="left", padx=10)
         self.summary = tk.StringVar(value="Enter your expenses and press Calculate.")
         ttk.Label(tab, textvariable=self.summary, style="Title.TLabel", wraplength=800).pack(anchor="w", pady=(4, 8))
+        self.chart = tk.Canvas(tab, height=90, bg=PANEL, highlightthickness=0)
+        self.chart.pack(fill="x", pady=(0, 10))
+        self.chart.bind("<Configure>", lambda _event: self.draw_chart())
         holder = ttk.Frame(tab)
         holder.pack(fill="both", expand=True)
         self.share_tree = ttk.Treeview(holder, columns=("person", "amount"), show="headings")
@@ -195,6 +204,29 @@ class ProjectApp(tk.Tk):
         for index, share in enumerate(result["shares"], 1):
             self.share_tree.insert("", "end", values=(f"Person {index}", share))
         self.summary.set(f'Total: {result["total"]}   •   {result["people"]} people')
+        self.draw_chart()
+
+    def draw_chart(self) -> None:
+        self.chart.delete("all")
+        if not self.last_expense:
+            return
+        from decimal import Decimal
+        items = [(key, Decimal(self.last_expense[key])) for key in ("rent", "food", "electricity")]
+        total = sum((amount for _, amount in items), Decimal(0))
+        if not total:
+            return
+        colors = ("#38bdf8", "#a78bfa", "#34d399")
+        x = 12.0
+        width = max(self.chart.winfo_width() - 24, 1)
+        for (key, amount), color in zip(items, colors):
+            length = width * float(amount / total)
+            if length > 0:
+                self.chart.create_rectangle(x, 8, x + length, 38, fill=color, outline="")
+            x += length
+        for i, ((key, amount), color) in enumerate(zip(items, colors)):
+            x = 12 + i * 170
+            self.chart.create_rectangle(x, 57, x + 10, 69, fill=color, outline="")
+            self.chart.create_text(x + 16, 63, text=key.title() + ": " + str(amount), anchor="w", fill=TEXT)
 
     def copy_summary(self) -> None:
         if self.last_expense is None:
@@ -252,6 +284,7 @@ class ProjectApp(tk.Tk):
         for key in self.expense_fields:
             self.expense_fields[key].set("")
         self.last_expense = None
+        self.draw_chart()
         self.share_tree.delete(*self.share_tree.get_children())
         self.summary.set("Enter your expenses and press Calculate.")
 
