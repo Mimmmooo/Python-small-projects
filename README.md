@@ -10,7 +10,17 @@ Look up any of the 118 elements using its **atomic number**, **chemical symbol**
 ### 🏠 Household Rent & Expense Calculator
 Add **rent**, **food**, and **electricity** costs, then split the total between housemates. Supports decimal amounts, prevents invalid inputs and division by zero, and distributes leftover cents so the shares add up to the exact total.
 
-## Desktop app (GUI)\n\nLaunch both projects in a dark-themed, resizable desktop window. The Element Explorer includes a searchable, scrollable table of all 118 elements, partial-name search, and element details. The Expense Splitter shows each person's exact share, supports reset, and exports the expense breakdown and shares to CSV:\n\n```bash\npython desktop_app.py\n```\n\nThe GUI uses Python's standard **Tkinter** library, so no additional pip package is required for the interface. On some Linux distributions, install the OS package `python3-tk` if Tkinter is missing. A graphical desktop session is required. CLI tools still work independently.\n\n## Quick start
+## Desktop app (GUI)
+
+Launch both projects in a dark-themed, resizable desktop window. The Element Explorer includes a searchable, scrollable table of all 118 elements, partial-name search, and element details. The Expense Splitter shows each person's exact share, supports reset, and exports the expense breakdown and shares to CSV:
+
+```bash
+python desktop_app.py
+```
+
+The GUI uses Python's standard **Tkinter** library, so no additional pip package is required for the interface. On some Linux distributions, install the OS package `python3-tk` if Tkinter is missing. A graphical desktop session is required. CLI tools still work independently.
+
+## Quick start
 
 Python 3.10 or newer is recommended.
 
@@ -68,7 +78,8 @@ GitHub Actions also runs the test suite on Python 3.10, 3.12 and 3.13 for pushes
 
 | File | Purpose |
 | --- | --- |
-| `desktop_app.py` | Tkinter desktop interface for both projects |\n| `periodic_table.py` | Chemical element search and information |
+| `desktop_app.py` | Tkinter desktop interface for both projects |
+| `periodic_table.py` | Chemical element search and information |
 | `rent_calculator.py` | Shared expense calculation |
 | `requirements.txt` | External Python dependency |
 | `tests/test_projects.py` | Automated tests |
