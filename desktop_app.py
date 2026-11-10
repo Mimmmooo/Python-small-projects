@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import csv
+from datetime import datetime
+from expense_history import load_history, save_history
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
@@ -23,6 +25,7 @@ class ProjectApp(tk.Tk):
         self.minsize(760, 550)
         self.configure(bg=BG)
         self.last_expense = None
+        self.history = load_history()
         self.setup_styles()
         self.build_header()
         self.tabs = ttk.Notebook(self)
@@ -31,8 +34,11 @@ class ProjectApp(tk.Tk):
         self.expense_tab = ttk.Frame(self.tabs, padding=18)
         self.tabs.add(self.element_tab, text="  Element Explorer  ")
         self.tabs.add(self.expense_tab, text="  Expense Splitter  ")
+        self.history_tab = ttk.Frame(self.tabs, padding=18)
+        self.tabs.add(self.history_tab, text="  History  ")
         self.build_elements()
         self.build_expenses()
+        self.build_history()
 
     def setup_styles(self) -> None:
         style = ttk.Style(self)
@@ -154,6 +160,7 @@ class ProjectApp(tk.Tk):
         ttk.Button(buttons, text="Calculate", command=self.calculate).pack(side="left")
         ttk.Button(buttons, text="Export CSV", command=self.export_csv).pack(side="left", padx=10)
         ttk.Button(buttons, text="Reset", command=self.reset_expenses).pack(side="left")
+        ttk.Button(buttons, text="Copy summary", command=self.copy_summary).pack(side="left", padx=10)
         self.summary = tk.StringVar(value="Enter your expenses and press Calculate.")
         ttk.Label(tab, textvariable=self.summary, style="Title.TLabel", wraplength=800).pack(anchor="w", pady=(4, 8))
         holder = ttk.Frame(tab)
@@ -177,10 +184,69 @@ class ProjectApp(tk.Tk):
             messagebox.showerror("Invalid expense", str(exc), parent=self)
             return
         self.last_expense = result
+        self.history.append(dict(result, timestamp=datetime.now().isoformat(timespec="seconds")))
+        self.history = self.history[-100:]
+        try:
+            save_history(self.history)
+        except OSError as exc:
+            messagebox.showwarning("History not saved", str(exc), parent=self)
+        self.refresh_history()
         self.share_tree.delete(*self.share_tree.get_children())
         for index, share in enumerate(result["shares"], 1):
             self.share_tree.insert("", "end", values=(f"Person {index}", share))
         self.summary.set(f'Total: {result["total"]}   •   {result["people"]} people')
+
+    def copy_summary(self) -> None:
+        if self.last_expense is None:
+            messagebox.showinfo("Copy summary", "Calculate expenses first.", parent=self)
+            return
+        lines = ["Total: " + self.last_expense["total"]]
+        lines += ["Person " + str(i) + ": " + share for i, share in enumerate(self.last_expense["shares"], 1)]
+        self.clipboard_clear()
+        self.clipboard_append(chr(10).join(lines))
+        self.update()
+
+    def build_history(self) -> None:
+        ttk.Label(self.history_tab, text="Recent calculations", style="Title.TLabel").pack(anchor="w")
+        self.history_tree = ttk.Treeview(self.history_tab, columns=("date", "total", "people"), show="headings")
+        for key, title in (("date", "Date"), ("total", "Total"), ("people", "People")):
+            self.history_tree.heading(key, text=title)
+        self.history_tree.pack(fill="both", expand=True, pady=12)
+        actions = ttk.Frame(self.history_tab)
+        actions.pack(fill="x")
+        ttk.Button(actions, text="Restore selected", command=self.restore_history).pack(side="left")
+        ttk.Button(actions, text="Clear history", command=self.clear_history).pack(side="left", padx=10)
+        self.refresh_history()
+
+    def refresh_history(self) -> None:
+        if not hasattr(self, "history_tree"):
+            return
+        self.history_tree.delete(*self.history_tree.get_children())
+        for index in range(len(self.history) - 1, -1, -1):
+            row = self.history[index]
+            self.history_tree.insert("", "end", iid=str(index), values=(
+                row.get("timestamp", ""), row.get("total", ""), row.get("people", "")
+            ))
+
+    def restore_history(self) -> None:
+        selected = self.history_tree.selection()
+        if not selected:
+            return
+        row = self.history[int(selected[0])]
+        for label, key in (("Rent", "rent"), ("Food", "food"), ("Electricity", "electricity"), ("People", "people")):
+            self.expense_fields[label].set(str(row.get(key, "")))
+        self.tabs.select(self.expense_tab)
+
+    def clear_history(self) -> None:
+        if not messagebox.askyesno("Clear history", "Delete all saved calculations?", parent=self):
+            return
+        try:
+            save_history([])
+        except OSError as exc:
+            messagebox.showerror("History error", str(exc), parent=self)
+            return
+        self.history.clear()
+        self.refresh_history()
 
     def reset_expenses(self) -> None:
         for key in self.expense_fields:
