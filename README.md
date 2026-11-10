@@ -12,13 +12,17 @@ Add **rent**, **food**, and **electricity** costs, then split the total between 
 
 ## Desktop app (GUI)
 
-Launch both projects in a dark-themed, resizable desktop window. The Element Explorer includes a searchable, scrollable table of all 118 elements, partial-name search, and element details. The Expense Splitter shows each person's exact share, supports reset, copies summaries to the clipboard, saves the latest 100 calculations locally in a History tab (with restore and clear controls), and exports the expense breakdown and shares to CSV:
+Launch both projects in a dark-themed, resizable desktop window. The Element Explorer includes a searchable, scrollable table of all 118 elements, live partial-name search, and element details. The Expense Splitter shows each person's exact share, supports reset, copies summaries to the clipboard, saves the latest 100 calculations locally in a History tab (with restore and clear controls), shows a color-coded expense chart, and exports the expense breakdown and shares to CSV:
 
 ```bash
 python desktop_app.py
 ```
 
 The GUI uses Python's standard **Tkinter** library, so no additional pip package is required for the interface. On some Linux distributions, install the OS package `python3-tk` if Tkinter is missing. A graphical desktop session is required. CLI tools still work independently.
+
+## Windows executable
+
+Use the **Build Windows desktop app** workflow under GitHub Actions and select **Run workflow**. After it finishes successfully, download the `PythonLab-Windows` artifact and extract `PythonLab.exe`. The workflow also runs when a GitHub Release is published. Windows builds must be produced on Windows; no executable is committed to the repository.
 
 ## Quick start
 
@@ -85,5 +89,6 @@ GitHub Actions also runs the test suite on Python 3.10, 3.12 and 3.13 for pushes
 | `requirements.txt` | External Python dependency |
 | `tests/test_projects.py` | Automated tests |
 | `.github/workflows/tests.yml` | Continuous integration |
+| `.github/workflows/windows-build.yml` | Windows executable build |
 
 Built as approachable Python learning projects. Contributions and suggestions are welcome.
