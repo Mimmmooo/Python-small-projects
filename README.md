@@ -1,6 +1,6 @@
 # Python Small Projects 🐍
 
-Two beginner-friendly Python command-line applications, upgraded with input validation, useful output, and tests.
+Two beginner-friendly Python applications with command-line tools, a desktop GUI, input validation, and automated tests.
 
 ## Projects
 
@@ -10,7 +10,7 @@ Look up any of the 118 elements using its **atomic number**, **chemical symbol**
 ### 🏠 Household Rent & Expense Calculator
 Add **rent**, **food**, and **electricity** costs, then split the total between housemates. Supports decimal amounts, prevents invalid inputs and division by zero, and distributes leftover cents so the shares add up to the exact total.
 
-## Quick start
+## Desktop app (GUI)\n\nLaunch both projects in one window with tabs, form fields, buttons, and readable results:\n\n```bash\npython desktop_app.py\n```\n\nThe GUI uses Python's standard **Tkinter** library, so no additional pip package is required for the interface. On some Linux distributions, install the OS package `python3-tk` if Tkinter is missing. A graphical desktop session is required. CLI tools still work independently.\n\n## Quick start
 
 Python 3.10 or newer is recommended.
 
@@ -68,7 +68,7 @@ GitHub Actions also runs the test suite on Python 3.10, 3.12 and 3.13 for pushes
 
 | File | Purpose |
 | --- | --- |
-| `periodic_table.py` | Chemical element search and information |
+| `desktop_app.py` | Tkinter desktop interface for both projects |\n| `periodic_table.py` | Chemical element search and information |
 | `rent_calculator.py` | Shared expense calculation |
 | `requirements.txt` | External Python dependency |
 | `tests/test_projects.py` | Automated tests |
