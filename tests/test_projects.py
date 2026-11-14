@@ -10,6 +10,27 @@ from expense_history import load_history, save_history
 
 from rent_calculator import expense_data, expense_report, parse_amount, split_expenses
 from periodic_table import element_data, find_element, format_property, periodictable
+from periodic_layout import element_category, periodic_positions, validate_periodic_positions
+
+
+class PeriodicLayoutTests(unittest.TestCase):
+    def test_layout_contains_all_elements_once(self):
+        self.assertTrue(validate_periodic_positions())
+        positions = periodic_positions()
+        self.assertEqual(len(positions), 118)
+        self.assertEqual(len(set(positions.values())), 118)
+
+    def test_known_element_families(self):
+        self.assertEqual(element_category(3), "alkali metal")
+        self.assertEqual(element_category(26), "transition metal")
+        self.assertEqual(element_category(54), "noble gas")
+        self.assertEqual(element_category(92), "actinide")
+
+    def test_invalid_atomic_number(self):
+        for number in (0, 119):
+            with self.subTest(number=number):
+                with self.assertRaises(ValueError):
+                    element_category(number)
 
 
 class ExpenseHistoryTests(unittest.TestCase):
