@@ -21,6 +21,7 @@ class PeriodicLayoutTests(unittest.TestCase):
         self.assertEqual(len(set(positions.values())), 118)
 
     def test_known_element_families(self):
+        self.assertEqual(element_category(1), "reactive nonmetal")
         self.assertEqual(element_category(3), "alkali metal")
         self.assertEqual(element_category(26), "transition metal")
         self.assertEqual(element_category(54), "noble gas")
