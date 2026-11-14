@@ -12,7 +12,7 @@ Add **rent**, **food**, and **electricity** costs, then split the total between 
 
 ## Desktop app (GUI)
 
-Launch both projects in a dark-themed, resizable desktop window. The Element Explorer includes a searchable, scrollable table of all 118 elements, live partial-name search, and element details. The Expense Splitter shows each person's exact share, supports reset, copies summaries to the clipboard, saves the latest 100 calculations locally in a History tab (with restore and clear controls), shows a color-coded expense chart, and exports the expense breakdown and shares to CSV:
+Launch both projects in a dark-themed, resizable desktop window. The Element Explorer includes a searchable, scrollable table of all 118 elements, live partial-name search, and element details. The Expense Splitter shows each person's exact share, supports reset, copies summaries to the clipboard, saves the latest 100 calculations locally in a History tab (with restore, clear, combined-total and average summaries, and full-history CSV export), shows a color-coded expense chart, and exports the expense breakdown and shares to CSV:
 
 ```bash
 python desktop_app.py
