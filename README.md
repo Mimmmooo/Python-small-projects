@@ -12,7 +12,7 @@ Add **rent**, **food**, and **electricity** costs, then split the total between 
 
 ## Desktop app (GUI)
 
-Launch both projects in a dark-themed, resizable desktop window. The Element Explorer includes a searchable, scrollable table of all 118 elements, live partial-name search, and element details. The Expense Splitter shows each person's exact share, supports reset, copies summaries to the clipboard, saves the latest 100 calculations locally in a History tab (with restore, clear, combined-total and average summaries, and full-history CSV export), shows a color-coded expense chart, and exports the expense breakdown and shares to CSV:
+Launch both projects in a dark-themed, resizable desktop window. The Element Explorer includes searchable element lookup plus an interactive 2D periodic table with all 118 elements, standard positions, color-coded element families, hover labels, and click-to-inspect details. The Expense Splitter shows each person's exact share, supports reset, copies summaries to the clipboard, saves the latest 100 calculations locally in a History tab (with restore, clear, combined-total and average summaries, and full-history CSV export), shows a color-coded expense chart, and exports the expense breakdown and shares to CSV:
 
 ```bash
 python desktop_app.py
@@ -85,6 +85,7 @@ GitHub Actions also runs the test suite on Python 3.10, 3.12 and 3.13 for pushes
 | `desktop_app.py` | Tkinter desktop interface for both projects |
 | `expense_history.py` | Local JSON history storage |
 | `periodic_table.py` | Chemical element search and information |
+| `periodic_layout.py` | Periodic-table positions, element families and colors |
 | `rent_calculator.py` | Shared expense calculation |
 | `requirements.txt` | External Python dependency |
 | `tests/test_projects.py` | Automated tests |
