@@ -4,6 +4,7 @@ from __future__ import annotations
 import csv
 from datetime import datetime
 from expense_history import load_history, save_history
+from expense_settlement import calculate_settlement
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
@@ -236,11 +237,13 @@ class ProjectApp(tk.Tk):
         self.chart.bind("<Configure>", lambda _event: self.draw_chart())
         holder = ttk.Frame(tab)
         holder.pack(fill="both", expand=True)
-        self.share_tree = ttk.Treeview(holder, columns=("person", "amount"), show="headings")
-        self.share_tree.heading("person", text="Person")
-        self.share_tree.heading("amount", text="Amount")
-        self.share_tree.column("person", anchor="center")
-        self.share_tree.column("amount", anchor="center")
+        ttk.Label(tab, text="Optional payments: one participant per line, formatted as Name, amount. Leave blank for equal sharing.", style="Muted.TLabel").pack(anchor="w", pady=(8, 3))
+        self.contribution_input = tk.Text(tab, height=3, bg="#0f172a", fg=TEXT, insertbackground=TEXT, relief="flat", wrap="none")
+        self.contribution_input.pack(fill="x", pady=(0, 8))
+        self.share_tree = ttk.Treeview(holder, columns=("person", "paid", "share", "net"), show="headings")
+        for key, label in (("person", "Participant"), ("paid", "Paid"), ("share", "Fair share"), ("net", "Net balance")):
+            self.share_tree.heading(key, text=label)
+            self.share_tree.column(key, anchor="center", width=130)
         scrollbar = ttk.Scrollbar(holder, orient="vertical", command=self.share_tree.yview)
         self.share_tree.configure(yscrollcommand=scrollbar.set)
         self.share_tree.pack(side="left", fill="both", expand=True)
@@ -254,6 +257,26 @@ class ProjectApp(tk.Tk):
         except (ValueError, OverflowError) as exc:
             messagebox.showerror("Invalid expense", str(exc), parent=self)
             return
+        total = sum(amounts)
+        raw_contributions = self.contribution_input.get("1.0", "end").strip()
+        try:
+            if raw_contributions:
+                contributions = []
+                for line_number, line in enumerate(raw_contributions.splitlines(), 1):
+                    if not line.strip():
+                        continue
+                    parts = line.rsplit(",", 1)
+                    if len(parts) != 2:
+                        raise ValueError(f"Line {line_number}: use Name, amount.")
+                    contributions.append((parts[0].strip(), parse_amount(parts[1].strip())))
+            else:
+                contributions = [(f"Person {index}", Decimal(share))
+                                 for index, share in enumerate(result["shares"], 1)]
+            settlement = calculate_settlement(total, contributions)
+        except ValueError as exc:
+            messagebox.showerror("Invalid contributions", str(exc), parent=self)
+            return
+        result["settlement"] = settlement
         self.last_expense = result
         self.history.append(dict(result, timestamp=datetime.now().isoformat(timespec="seconds")))
         self.history = self.history[-100:]
@@ -263,9 +286,15 @@ class ProjectApp(tk.Tk):
             messagebox.showwarning("History not saved", str(exc), parent=self)
         self.refresh_history()
         self.share_tree.delete(*self.share_tree.get_children())
-        for index, share in enumerate(result["shares"], 1):
-            self.share_tree.insert("", "end", values=(f"Person {index}", share))
-        self.summary.set(f'Total: {result["total"]}   •   {result["people"]} people')
+        for participant in settlement["participants"]:
+            self.share_tree.insert("", "end", values=(
+                participant["name"], participant["paid"], participant["share"], participant["net"]
+            ))
+        transfers = "  •  ".join(
+            f'{item["from"]} → {item["to"]}: {item["amount"]}'
+            for item in settlement["transfers"]
+        ) or "No repayments needed"
+        self.summary.set(f'Total: {result["total"]}   •   {len(settlement["participants"])} people\n{transfers}')
         self.draw_chart()
 
     def draw_chart(self) -> None:
@@ -386,6 +415,7 @@ class ProjectApp(tk.Tk):
         for key in self.expense_fields:
             self.expense_fields[key].set("")
         self.last_expense = None
+        self.contribution_input.delete("1.0", "end")
         self.draw_chart()
         self.share_tree.delete(*self.share_tree.get_children())
         self.summary.set("Enter your expenses and press Calculate.")
@@ -407,9 +437,14 @@ class ProjectApp(tk.Tk):
                 for key in ("rent", "food", "electricity", "total"):
                     writer.writerow([key.title(), self.last_expense[key]])
                 writer.writerow([])
-                writer.writerow(["Person", "Share"])
-                for index, share in enumerate(self.last_expense["shares"], 1):
-                    writer.writerow([index, share])
+                writer.writerow(["Participant", "Paid", "Fair share", "Net balance"])
+                settlement = self.last_expense.get("settlement", {})
+                for participant in settlement.get("participants", []):
+                    writer.writerow([participant["name"], participant["paid"], participant["share"], participant["net"]])
+                writer.writerow([])
+                writer.writerow(["From", "To", "Repayment"])
+                for transfer in settlement.get("transfers", []):
+                    writer.writerow([transfer["from"], transfer["to"], transfer["amount"]])
         except OSError as exc:
             messagebox.showerror("Export failed", str(exc), parent=self)
         else:
