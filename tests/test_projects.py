@@ -11,6 +11,7 @@ from expense_history import load_history, save_history
 from rent_calculator import expense_data, expense_report, parse_amount, split_expenses
 from periodic_table import element_data, find_element, format_property, periodictable
 from periodic_layout import element_category, periodic_positions, validate_periodic_positions
+from expense_settlement import calculate_settlement
 
 
 class PeriodicLayoutTests(unittest.TestCase):
@@ -57,6 +58,22 @@ class ExpenseHistoryTests(unittest.TestCase):
             path.write_text("{broken", encoding="utf-8")
             self.assertEqual(load_history(path), [])
 
+
+class ExpenseSettlementTests(unittest.TestCase):
+    def test_unequal_payments_create_repayments(self):
+        result = calculate_settlement(Decimal("90.00"), [("A", Decimal("90.00")), ("B", Decimal("0.00")), ("C", Decimal("0.00"))])
+        self.assertEqual(result["transfers"], [{"from": "B", "to": "A", "amount": "30.00"}, {"from": "C", "to": "A", "amount": "30.00"}])
+        self.assertEqual([row["net"] for row in result["participants"]], ["+60.00", "-30.00", "-30.00"])
+
+    def test_invalid_contributions_are_rejected(self):
+        with self.assertRaises(ValueError):
+            calculate_settlement(Decimal("10.00"), [("A", Decimal("5.00"))])
+        with self.assertRaises(ValueError):
+            calculate_settlement(Decimal("10.00"), [("A", Decimal("5.00")), ("a", Decimal("5.00"))])
+
+    def test_even_payments_need_no_transfers(self):
+        result = calculate_settlement(Decimal("30.00"), [("A", Decimal("10.00")), ("B", Decimal("10.00")), ("C", Decimal("10.00"))])
+        self.assertEqual(result["transfers"], [])
 
 class RentCalculatorTests(unittest.TestCase):
     def test_amount_parsing(self):
