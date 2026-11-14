@@ -247,7 +247,10 @@ class ProjectApp(tk.Tk):
         actions = ttk.Frame(self.history_tab)
         actions.pack(fill="x")
         ttk.Button(actions, text="Restore selected", command=self.restore_history).pack(side="left")
+        ttk.Button(actions, text="Export history", command=self.export_history).pack(side="left", padx=10)
         ttk.Button(actions, text="Clear history", command=self.clear_history).pack(side="left", padx=10)
+        self.history_summary = tk.StringVar(value="")
+        ttk.Label(self.history_tab, textvariable=self.history_summary, style="Muted.TLabel").pack(anchor="w", pady=(10, 0))
         self.refresh_history()
 
     def refresh_history(self) -> None:
@@ -259,6 +262,18 @@ class ProjectApp(tk.Tk):
             self.history_tree.insert("", "end", iid=str(index), values=(
                 row.get("timestamp", ""), row.get("total", ""), row.get("people", "")
             ))
+        from decimal import Decimal, InvalidOperation
+        totals = []
+        for row in self.history:
+            try:
+                totals.append(Decimal(str(row.get("total", "0"))))
+            except InvalidOperation:
+                continue
+        combined = sum(totals, Decimal("0"))
+        average = combined / len(totals) if totals else Decimal("0")
+        self.history_summary.set(
+            f"{len(totals)} saved calculations  •  Combined total: {combined:.2f}  •  Average: {average:.2f}"
+        )
 
     def restore_history(self) -> None:
         selected = self.history_tree.selection()
@@ -268,6 +283,31 @@ class ProjectApp(tk.Tk):
         for label, key in (("Rent", "rent"), ("Food", "food"), ("Electricity", "electricity"), ("People", "people")):
             self.expense_fields[label].set(str(row.get(key, "")))
         self.tabs.select(self.expense_tab)
+
+    def export_history(self) -> None:
+        if not self.history:
+            messagebox.showinfo("Export history", "There is no saved history to export.", parent=self)
+            return
+        path = filedialog.asksaveasfilename(
+            parent=self, defaultextension=".csv", filetypes=[("CSV files", "*.csv")],
+            initialfile="expense_history.csv",
+        )
+        if not path:
+            return
+        try:
+            with open(path, "w", newline="", encoding="utf-8") as stream:
+                writer = csv.writer(stream)
+                writer.writerow(["Date", "Rent", "Food", "Electricity", "Total", "People", "Shares"])
+                for row in self.history:
+                    writer.writerow([
+                        row.get("timestamp", ""), row.get("rent", ""), row.get("food", ""),
+                        row.get("electricity", ""), row.get("total", ""), row.get("people", ""),
+                        "; ".join(row.get("shares", [])),
+                    ])
+        except OSError as exc:
+            messagebox.showerror("Export failed", str(exc), parent=self)
+        else:
+            messagebox.showinfo("Export complete", f"Saved to:\n{path}", parent=self)
 
     def clear_history(self) -> None:
         if not messagebox.askyesno("Clear history", "Delete all saved calculations?", parent=self):
