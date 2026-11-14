@@ -2,9 +2,38 @@
 
 from decimal import Decimal
 import unittest
+import json
+import tempfile
+from pathlib import Path
+
+from expense_history import load_history, save_history
 
 from rent_calculator import expense_data, expense_report, parse_amount, split_expenses
 from periodic_table import element_data, find_element, format_property, periodictable
+
+
+class ExpenseHistoryTests(unittest.TestCase):
+    def test_save_and_load_round_trip(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "nested" / "history.json"
+            records = [{"total": "12.00", "shares": ["6.00", "6.00"]}]
+            save_history(records, path)
+            self.assertEqual(load_history(path), records)
+
+    def test_history_is_limited_to_latest_100(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "history.json"
+            records = [{"id": index, "shares": []} for index in range(125)]
+            save_history(records, path)
+            loaded = load_history(path)
+            self.assertEqual(len(loaded), 100)
+            self.assertEqual(loaded[0]["id"], 25)
+
+    def test_corrupt_history_returns_empty_list(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "history.json"
+            path.write_text("{broken", encoding="utf-8")
+            self.assertEqual(load_history(path), [])
 
 
 class RentCalculatorTests(unittest.TestCase):
