@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import csv
 from datetime import datetime
+from decimal import Decimal
 from expense_history import load_history, save_history
 from expense_settlement import calculate_settlement
 import tkinter as tk
