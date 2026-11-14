@@ -8,6 +8,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
 from periodic_table import element_data, find_element, require_periodictable
+from periodic_layout import CATEGORY_COLORS, element_category, periodic_positions
 from rent_calculator import expense_data, parse_amount
 
 BG = "#0f172a"
@@ -75,6 +76,7 @@ class ProjectApp(tk.Tk):
         entry.pack(side="left", fill="x", expand=True, padx=(0, 10))
         ttk.Button(controls, text="Search", command=self.search_elements).pack(side="left")
         ttk.Button(controls, text="Show all", command=self.show_all_elements).pack(side="left", padx=(8, 0))
+        ttk.Button(controls, text="2D Periodic Table", command=self.open_periodic_table).pack(side="left", padx=(8, 0))
         entry.bind("<Return>", lambda _: self.search_elements())
         columns = ("number", "symbol", "name", "mass")
         wrapper = ttk.Frame(tab)
@@ -141,6 +143,66 @@ class ProjectApp(tk.Tk):
                 f'Mass: {mass if mass is not None else "N/A"} u  •  '
                 f'Density: {density if density is not None else "N/A"} g/cm³'
             )
+        except (RuntimeError, ValueError) as exc:
+            messagebox.showerror("Element Explorer", str(exc), parent=self)
+
+    def open_periodic_table(self) -> None:
+        try:
+            table = require_periodictable()
+        except RuntimeError as exc:
+            messagebox.showerror("Periodic Table", str(exc), parent=self)
+            return
+        window = tk.Toplevel(self)
+        window.title("Interactive Periodic Table")
+        window.configure(bg=BG)
+        window.geometry("1180x650")
+        window.minsize(900, 520)
+        tk.Label(window, text="PERIODIC TABLE", bg=BG, fg=TEXT,
+                 font=("DejaVu Sans", 19, "bold")).pack(anchor="w", padx=18, pady=(14, 2))
+        tk.Label(window, text="Select any element to inspect its properties.",
+                 bg=BG, fg=MUTED).pack(anchor="w", padx=18, pady=(0, 10))
+        grid = tk.Frame(window, bg=BG)
+        grid.pack(fill="both", expand=True, padx=14, pady=8)
+        positions = periodic_positions()
+        for column in range(18):
+            grid.columnconfigure(column, weight=1, uniform="element")
+        for row in range(9):
+            grid.rowconfigure(row, weight=1, uniform="element")
+        for number, (row, column) in positions.items():
+            element = table.elements[number]
+            category = element_category(number)
+            tile = tk.Button(
+                grid, text=f"{number}\n{element.symbol}", justify="center",
+                bg=CATEGORY_COLORS[category], fg="#0f172a",
+                activebackground="#f8fafc", activeforeground="#0f172a",
+                relief="flat", bd=0, font=("DejaVu Sans", 9, "bold"),
+                command=lambda n=number: self.show_table_element(n),
+            )
+            tile.grid(row=row, column=column, sticky="nsew", padx=2, pady=2)
+            tile.bind("<Enter>", lambda _event, w=tile, e=element, c=category:
+                      w.configure(text=f"{e.name.title()}\n{e.symbol}\n{c}"))
+            tile.bind("<Leave>", lambda _event, w=tile, e=element, n=number:
+                      w.configure(text=f"{n}\n{e.symbol}"))
+        legend = tk.Frame(window, bg=BG)
+        legend.pack(fill="x", padx=16, pady=(4, 14))
+        for category, color in CATEGORY_COLORS.items():
+            item = tk.Frame(legend, bg=BG)
+            item.pack(side="left", padx=(0, 10))
+            tk.Label(item, text="  ", bg=color).pack(side="left")
+            tk.Label(item, text=category.title(), bg=BG, fg=TEXT,
+                     font=("DejaVu Sans", 8)).pack(side="left", padx=3)
+
+    def show_table_element(self, number: int) -> None:
+        try:
+            element = find_element(str(number))
+            data = element_data(element)
+            category = element_category(number)
+            self.element_details.set(
+                f'{data["name"]} ({data["symbol"]})  •  Atomic number: {number}  •  Family: {category.title()}\\n'
+                f'Mass: {data["atomic_mass_u"] if data["atomic_mass_u"] is not None else "N/A"} u  •  '
+                f'Density: {data["density_g_cm3"] if data["density_g_cm3"] is not None else "N/A"} g/cm³'
+            )
+            self.tabs.select(self.element_tab)
         except (RuntimeError, ValueError) as exc:
             messagebox.showerror("Element Explorer", str(exc), parent=self)
 
