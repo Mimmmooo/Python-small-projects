@@ -115,6 +115,52 @@ class RentCalculatorTests(unittest.TestCase):
         self.assertIn("Each person pays : 60.00", report)
 
 
+    def test_named_participants_are_included_in_report_and_json(self):
+        result = expense_data(
+            Decimal("10.00"), Decimal("0.00"), Decimal("0.00"), 3,
+            ["Ayon", "Mim", "Rafi"],
+        )
+        self.assertEqual(
+            result["participants"],
+            [
+                {"name": "Ayon", "share": "3.34"},
+                {"name": "Mim", "share": "3.33"},
+                {"name": "Rafi", "share": "3.33"},
+            ],
+        )
+        report = expense_report(
+            Decimal("10.00"), Decimal("0.00"), Decimal("0.00"), 3,
+            ["Ayon", "Mim", "Rafi"], "BDT",
+        )
+        self.assertIn("Ayon pays : 3.34 BDT", report)
+        self.assertIn("Rafi pays : 3.33 BDT", report)
+
+    def test_invalid_names_are_rejected(self):
+        for names in (["A", "A"], ["A", ""], ["A"], ["x" * 61, "B"]):
+            with self.subTest(names=names):
+                with self.assertRaises(ValueError):
+                    expense_data(Decimal("10.00"), Decimal("0.00"), Decimal("0.00"), 2, names)
+
+    def test_amount_parser_rejects_empty_and_non_string_input(self):
+        for value in ("", "   ", None, 100):
+            with self.subTest(value=value):
+                with self.assertRaises(ValueError):
+                    parse_amount(value)
+
+    def test_amount_limit_and_decimal_precision(self):
+        self.assertEqual(parse_amount("999999999999.99"), Decimal("999999999999.99"))
+        for value in ("1000000000000", "1.001", "1e999999"):
+            with self.subTest(value=value):
+                with self.assertRaises(ValueError):
+                    parse_amount(value)
+
+    def test_people_must_be_a_real_positive_integer(self):
+        for people in (0, -1, 1.5, True, 10001):
+            with self.subTest(people=people):
+                with self.assertRaises(ValueError):
+                    split_expenses(Decimal("1.00"), Decimal("0.00"), Decimal("0.00"), people)
+
+
 @unittest.skipIf(periodictable is None, "Install periodictable to run element tests")
 class PeriodicTableTests(unittest.TestCase):
     def test_lookup_by_number_symbol_and_name(self):
