@@ -8,7 +8,7 @@ Two beginner-friendly Python applications with command-line tools, a desktop GUI
 Look up any of the 118 elements using its **atomic number**, **chemical symbol**, or **name**. See the element's name, symbol, atomic number, atomic mass, and density (when available).
 
 ### 🏠 Household Rent & Expense Calculator
-Add **rent**, **food**, and **electricity** costs, then split the total between housemates. Supports decimal amounts, prevents invalid inputs and division by zero, and distributes leftover cents so the shares add up to the exact total.
+Add **rent**, **food**, and **electricity** costs, then split the total between housemates. Supports exact two-decimal arithmetic, optional participant names, currency labels, named JSON output, strict input validation, and remainder-cent distribution so every share adds up to the exact total.
 
 ## Desktop app (GUI)
 
@@ -51,10 +51,11 @@ Interactive mode accepts multiple searches until you type `q`, `quit`, or `exit`
 ```bash
 python rent_calculator.py
 python rent_calculator.py --rent 6500 --food 2250.50 --electricity 499.50 --people 3
-python rent_calculator.py --rent 6500 --food 2250.50 --electricity 499.50 --people 3 --json
+python rent_calculator.py --rent 6500 --food 2250.50 --electricity 499.50 --people 3 --currency BDT
+python rent_calculator.py --rent 6500 --food 2250.50 --electricity 499.50 --people 3 --names "Ayon,Mim,Rafi" --currency BDT --json
 ```
 
-The currency is intentionally unspecified, so you can enter amounts in BDT or another currency as long as all amounts use the same currency. Use a dot for decimal values and no thousands separators.
+Currency is optional and informational. Use `--currency BDT` (or another label) to show it in the report. Use `--names "Ayon,Mim,Rafi"` to label each person's share in the supplied order. Names must be unique, non-empty, and match the participant count. Enter amounts with a dot for decimals and no thousands separators. Amounts are limited to 999,999,999,999.99 and two decimal places.
 
 ## Example
 
