@@ -58,6 +58,20 @@ class ExpenseHistoryTests(unittest.TestCase):
             path.write_text("{broken", encoding="utf-8")
             self.assertEqual(load_history(path), [])
 
+    def test_history_round_trip_preserves_settlement_details(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "history.json"
+            record = {
+                "total": "90.00",
+                "shares": ["30.00", "30.00", "30.00"],
+                "settlement": {
+                    "participants": [{"name": "A", "paid": "90.00", "share": "30.00", "net": "+60.00"}],
+                    "transfers": [{"from": "B", "to": "A", "amount": "30.00"}],
+                },
+            }
+            save_history([record], path)
+            self.assertEqual(load_history(path), [record])
+
 
 class ExpenseSettlementTests(unittest.TestCase):
     def test_unequal_payments_create_repayments(self):
@@ -74,6 +88,23 @@ class ExpenseSettlementTests(unittest.TestCase):
     def test_even_payments_need_no_transfers(self):
         result = calculate_settlement(Decimal("30.00"), [("A", Decimal("10.00")), ("B", Decimal("10.00")), ("C", Decimal("10.00"))])
         self.assertEqual(result["transfers"], [])
+
+    def test_rejects_non_text_names_and_non_decimal_payments(self):
+        invalid_cases = [
+            (Decimal("10.00"), [(None, Decimal("10.00"))]),
+            (Decimal("10.00"), [("A", 10.0)]),
+            (Decimal("10.00"), [("A", Decimal("10.001"))]),
+            (Decimal("10.00"), [("A", Decimal("1000000000000.00"))]),
+        ]
+        for total, contributions in invalid_cases:
+            with self.subTest(contributions=contributions):
+                with self.assertRaises(ValueError):
+                    calculate_settlement(total, contributions)
+
+    def test_rejects_too_many_participants(self):
+        contributions = [(f"Person {index}", Decimal("0.00")) for index in range(10001)]
+        with self.assertRaises(ValueError):
+            calculate_settlement(Decimal("0.00"), contributions)
 
 class RentCalculatorTests(unittest.TestCase):
     def test_amount_parsing(self):
