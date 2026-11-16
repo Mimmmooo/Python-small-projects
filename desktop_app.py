@@ -410,7 +410,7 @@ class ProjectApp(tk.Tk):
                 f'{person.get("name", "")}, {person.get("paid", "")}'
                 for person in participants
             ]
-            self.contribution_input.insert("1.0", "\\n".join(restored_lines))
+            self.contribution_input.insert("1.0", "\n".join(restored_lines))
         self.tabs.select(self.expense_tab)
 
     def export_history(self) -> None:
@@ -443,9 +443,15 @@ class ProjectApp(tk.Tk):
                         for item in transfers
                     )
                     writer.writerow([
-                        row.get("timestamp", ""), row.get("rent", ""), row.get("food", ""),
-                        row.get("electricity", ""), row.get("total", ""), row.get("people", ""),
-                        "; ".join(row.get("shares", [])), payment_text, repayment_text,
+                        _spreadsheet_safe(row.get("timestamp", "")),
+                        _spreadsheet_safe(row.get("rent", "")),
+                        _spreadsheet_safe(row.get("food", "")),
+                        _spreadsheet_safe(row.get("electricity", "")),
+                        _spreadsheet_safe(row.get("total", "")),
+                        _spreadsheet_safe(row.get("people", "")),
+                        _spreadsheet_safe("; ".join(row.get("shares", []))),
+                        _spreadsheet_safe(payment_text),
+                        _spreadsheet_safe(repayment_text),
                     ])
         except OSError as exc:
             messagebox.showerror("Export failed", str(exc), parent=self)
