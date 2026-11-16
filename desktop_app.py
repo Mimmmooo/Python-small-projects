@@ -20,6 +20,14 @@ MUTED = "#94a3b8"
 ACCENT = "#38bdf8"
 
 
+def _spreadsheet_safe(value) -> str:
+    """Prevent user-controlled text from becoming a spreadsheet formula."""
+    text = str(value)
+    if text.lstrip().startswith(("=", "+", "-", "@", "\t", "\r")):
+        return "'" + text
+    return text
+
+
 class ProjectApp(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
@@ -273,6 +281,10 @@ class ProjectApp(tk.Tk):
             else:
                 contributions = [(f"Person {index}", Decimal(share))
                                  for index, share in enumerate(result["shares"], 1)]
+            if len(contributions) != people:
+                raise ValueError(
+                    f"Enter exactly {people} participant payment line(s), one for each person."
+                )
             settlement = calculate_settlement(total, contributions)
         except ValueError as exc:
             messagebox.showerror("Invalid contributions", str(exc), parent=self)
@@ -324,8 +336,25 @@ class ProjectApp(tk.Tk):
         if self.last_expense is None:
             messagebox.showinfo("Copy summary", "Calculate expenses first.", parent=self)
             return
-        lines = ["Total: " + self.last_expense["total"]]
-        lines += ["Person " + str(i) + ": " + share for i, share in enumerate(self.last_expense["shares"], 1)]
+        lines = ["Total expenses: " + self.last_expense["total"]]
+        settlement = self.last_expense.get("settlement", {})
+        lines.append("")
+        lines.append("Participants:")
+        for person in settlement.get("participants", []):
+            lines.append(
+                f'{person["name"]}: paid {person["paid"]}, '
+                f'share {person["share"]}, net {person["net"]}'
+            )
+        transfers = settlement.get("transfers", [])
+        lines.append("")
+        lines.append("Repayments:")
+        if transfers:
+            lines.extend(
+                f'{item["from"]} pays {item["to"]}: {item["amount"]}'
+                for item in transfers
+            )
+        else:
+            lines.append("No repayments needed.")
         self.clipboard_clear()
         self.clipboard_append(chr(10).join(lines))
         self.update()
@@ -374,6 +403,14 @@ class ProjectApp(tk.Tk):
         row = self.history[int(selected[0])]
         for label, key in (("Rent", "rent"), ("Food", "food"), ("Electricity", "electricity"), ("People", "people")):
             self.expense_fields[label].set(str(row.get(key, "")))
+        self.contribution_input.delete("1.0", "end")
+        participants = row.get("settlement", {}).get("participants", [])
+        if participants:
+            restored_lines = [
+                f'{person.get("name", "")}, {person.get("paid", "")}'
+                for person in participants
+            ]
+            self.contribution_input.insert("1.0", "\\n".join(restored_lines))
         self.tabs.select(self.expense_tab)
 
     def export_history(self) -> None:
@@ -389,12 +426,26 @@ class ProjectApp(tk.Tk):
         try:
             with open(path, "w", newline="", encoding="utf-8") as stream:
                 writer = csv.writer(stream)
-                writer.writerow(["Date", "Rent", "Food", "Electricity", "Total", "People", "Shares"])
+                writer.writerow([
+                    "Date", "Rent", "Food", "Electricity", "Total", "People",
+                    "Shares", "Participant Payments", "Repayments",
+                ])
                 for row in self.history:
+                    settlement = row.get("settlement", {})
+                    participants = settlement.get("participants", [])
+                    transfers = settlement.get("transfers", [])
+                    payment_text = "; ".join(
+                        f'{person.get("name", "")}: {person.get("paid", "")}'
+                        for person in participants
+                    )
+                    repayment_text = "; ".join(
+                        f'{item.get("from", "")} -> {item.get("to", "")}: {item.get("amount", "")}'
+                        for item in transfers
+                    )
                     writer.writerow([
                         row.get("timestamp", ""), row.get("rent", ""), row.get("food", ""),
                         row.get("electricity", ""), row.get("total", ""), row.get("people", ""),
-                        "; ".join(row.get("shares", [])),
+                        "; ".join(row.get("shares", [])), payment_text, repayment_text,
                     ])
         except OSError as exc:
             messagebox.showerror("Export failed", str(exc), parent=self)
@@ -441,11 +492,18 @@ class ProjectApp(tk.Tk):
                 writer.writerow(["Participant", "Paid", "Fair share", "Net balance"])
                 settlement = self.last_expense.get("settlement", {})
                 for participant in settlement.get("participants", []):
-                    writer.writerow([participant["name"], participant["paid"], participant["share"], participant["net"]])
+                    writer.writerow([
+                        _spreadsheet_safe(participant["name"]),
+                        participant["paid"], participant["share"], participant["net"],
+                    ])
                 writer.writerow([])
                 writer.writerow(["From", "To", "Repayment"])
                 for transfer in settlement.get("transfers", []):
-                    writer.writerow([transfer["from"], transfer["to"], transfer["amount"]])
+                    writer.writerow([
+                        _spreadsheet_safe(transfer["from"]),
+                        _spreadsheet_safe(transfer["to"]),
+                        transfer["amount"],
+                    ])
         except OSError as exc:
             messagebox.showerror("Export failed", str(exc), parent=self)
         else:
