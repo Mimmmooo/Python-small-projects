@@ -8,18 +8,35 @@ from rent_calculator import split_expenses
 def calculate_settlement(total: Decimal, contributions: list[tuple[str, Decimal]]) -> dict:
     """Return fair shares, net balances, and a minimal repayment list."""
     cent = Decimal("0.01")
-    if not total.is_finite() or total < 0 or total != total.quantize(cent):
-        raise ValueError("Total must be a non-negative amount with at most two decimals.")
+    maximum = Decimal("999999999999.99")
+    if not isinstance(total, Decimal) or not total.is_finite() or total < 0 or total > maximum:
+        raise ValueError("Total must be a finite amount between 0 and 999,999,999,999.99.")
+    if total != total.quantize(cent):
+        raise ValueError("Total must have at most two decimal places.")
     if not contributions:
         raise ValueError("Add at least one participant.")
+    if len(contributions) > 10000:
+        raise ValueError("A maximum of 10,000 participants is supported.")
+    if any(not isinstance(name, str) for name, _ in contributions):
+        raise ValueError("Participant names must be text.")
     names = [name.strip() for name, _ in contributions]
     if any(not name for name in names):
         raise ValueError("Participant names cannot be empty.")
     if len({name.casefold() for name in names}) != len(names):
         raise ValueError("Participant names must be unique.")
     paid = [amount for _, amount in contributions]
-    if any(not amount.is_finite() or amount < 0 or amount != amount.quantize(cent) for amount in paid):
-        raise ValueError("Payments must be non-negative amounts with at most two decimals.")
+    if any(
+        not isinstance(amount, Decimal)
+        or not amount.is_finite()
+        or amount < 0
+        or amount > maximum
+        or amount != amount.quantize(cent)
+        for amount in paid
+    ):
+        raise ValueError(
+            "Payments must be finite, non-negative amounts no greater than "
+            "999,999,999,999.99, with at most two decimals."
+        )
     if sum(paid, Decimal("0.00")) != total:
         raise ValueError("Participant payments must add up exactly to the total expenses.")
     shares = split_expenses(total, Decimal("0.00"), Decimal("0.00"), len(contributions))
